@@ -11,7 +11,9 @@ import { postRoutes } from "./routes/posts.js";
 import { interestRoutes } from "./routes/interests.js";
 import { reportRoutes } from "./routes/reports.js";
 import { uploadRoutes } from "./routes/upload.js";
-import { userRoutes }   from "./routes/users.js";
+import { userRoutes }          from "./routes/users.js";
+import { verificationRoutes } from "./routes/verifications.js";
+import { adminRoutes }        from "./routes/admin.js";
 import { initChat } from "./realtime/chat.js";
 
 const app = Fastify({ logger: true });
@@ -33,6 +35,8 @@ await app.register(interestRoutes);
 await app.register(reportRoutes);
 await app.register(uploadRoutes);
 await app.register(userRoutes);
+await app.register(verificationRoutes);
+await app.register(adminRoutes);
 
 try {
   await app.listen({ port: env.port, host: "0.0.0.0" });

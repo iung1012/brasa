@@ -9,7 +9,9 @@ import { RegisterScreen }      from "./screens/RegisterScreen.js";
 import { CreatePostScreen }    from "./screens/CreatePostScreen.js";
 import { ConversationScreen, type ChatContact } from "./screens/ConversationScreen.js";
 import { EditProfileScreen }  from "./screens/EditProfileScreen.js";
-import { SearchScreen }       from "./screens/SearchScreen.js";
+import { SearchScreen }        from "./screens/SearchScreen.js";
+import { VerificationScreen }  from "./screens/VerificationScreen.js";
+import { AdminScreen }         from "./screens/AdminScreen.js";
 import { BottomNav }           from "./components/BottomNav.js";
 
 export type Tab = "discover" | "map" | "chat" | "profile";
@@ -22,6 +24,8 @@ function Shell() {
   const [conversation, setConversation] = useState<ChatContact | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [searching, setSearching]           = useState(false);
+  const [verifying, setVerifying]           = useState(false);
+  const [adminOpen, setAdminOpen]           = useState(false);
 
   if (!user) {
     return (
@@ -49,11 +53,13 @@ function Shell() {
         {tab === "discover" && <DiscoverScreen onCreatePost={() => setCreating(true)} onSearch={() => setSearching(true)} />}
         {tab === "map"      && <MapScreen />}
         {tab === "chat"     && <ChatScreen onOpenChat={(c) => setConversation(c)} />}
-        {tab === "profile"  && <ProfileScreen onEditProfile={() => setEditingProfile(true)} />}
+        {tab === "profile"  && <ProfileScreen onEditProfile={() => setEditingProfile(true)} onVerify={() => setVerifying(true)} onAdmin={user?.role === "ADMIN" ? () => setAdminOpen(true) : undefined} />}
       </main>
       <BottomNav active={tab} onChange={setTab} />
 
-      {searching && <SearchScreen onClose={() => setSearching(false)} />}
+      {searching  && <SearchScreen onClose={() => setSearching(false)} />}
+      {verifying  && <VerificationScreen currentStatus={user?.verification ?? "NONE"} onClose={() => setVerifying(false)} />}
+      {adminOpen  && <AdminScreen onClose={() => setAdminOpen(false)} />}
 
       {editingProfile && (
         <EditProfileScreen

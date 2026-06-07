@@ -15,7 +15,7 @@ const POSTS = [
 
 type Section = "posts" | "settings";
 
-export function ProfileScreen({ onEditProfile }: { onEditProfile?: () => void }) {
+export function ProfileScreen({ onEditProfile, onVerify, onAdmin }: { onEditProfile?: () => void; onVerify?: () => void; onAdmin?: () => void }) {
   const { theme, toggle } = useTheme();
   const { user, logout }  = useAuth();
   const [section, setSection] = useState<Section>("posts");
@@ -150,16 +150,22 @@ export function ProfileScreen({ onEditProfile }: { onEditProfile?: () => void })
           />
 
           {/* verificacao */}
-          <SettingsRow
-            label="Verificacao de identidade"
-            description="Envie seu documento para obter o selo"
-            icon={<VerifiedIcon className="w-4 h-4" />}
-            action={
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#FFB020]/20 text-[#FFB020]">
-                Pendente
-              </span>
-            }
-          />
+          <button onClick={onVerify} className="w-full text-left">
+            <SettingsRow
+              label="Verificacao de identidade"
+              description={verified ? "Perfil verificado" : "Envie seus documentos para obter o selo"}
+              icon={<VerifiedIcon className="w-4 h-4" />}
+              action={
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                  verified
+                    ? "bg-[#FFB020]/20 text-[#FFB020]"
+                    : "bg-heat-1/20 text-heat-1"
+                }`}>
+                  {verified ? "Aprovado" : "Verificar"}
+                </span>
+              }
+            />
+          </button>
 
           {/* notificacoes */}
           <SettingsRow
@@ -182,6 +188,18 @@ export function ProfileScreen({ onEditProfile }: { onEditProfile?: () => void })
             icon={<MapPinIcon className="w-4 h-4" />}
             action={<ToggleSwitch on={true} />}
           />
+
+          {/* painel admin — visivel apenas para admins */}
+          {onAdmin && (
+            <button onClick={onAdmin} className="w-full text-left">
+              <SettingsRow
+                label="Painel Admin"
+                description="Gerenciar usuarios, verificacoes e denuncias"
+                icon={<svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                action={<svg viewBox="0 0 24 24" className="w-4 h-4 text-ink-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>}
+              />
+            </button>
+          )}
 
           {/* sair */}
           <button

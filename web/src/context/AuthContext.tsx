@@ -6,6 +6,7 @@ interface User {
   displayName: string;
   profileType: string;
   verification: string;
+  role?: string;
   avatarUrl?: string;
   coverUrl?: string;
   bio?: string;
