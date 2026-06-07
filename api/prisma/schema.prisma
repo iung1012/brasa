@@ -1,0 +1,571 @@
+// Brasa — schema Prisma
+// PostGIS: a coluna de localização usa Unsupported("geography").
+// Buscas por proximidade são feitas via $queryRaw (ver src/routes/geo.ts).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ────────────────────────────── ENUMS ──────────────────────────────
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum ProfileType {
+  COUPLE_MF // casal ele + ela
+  COUPLE_MM // casal ele + ele
+  COUPLE_FF // casal ela + ela
+  SINGLE_M  // solteiro
+  SINGLE_F  // solteira
+  VENUE     // casa de swing / estabelecimento
+}
+
+enum UserStatus {
+  AVAILABLE
+  BUSY
+  INVISIBLE
+}
+
+enum LocationAccuracy {
+  EXACT
+  NEIGHBORHOOD
+  CITY
+}
+
+enum Visibility {
+  PUBLIC
+  VERIFIED_ONLY
+  FOLLOWERS
+}
+
+enum VerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InterestStatus {
+  PENDING
+  ACCEPTED
+  IGNORED
+}
+
+enum ReactionType {
+  FIRE
+}
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  MESSAGE
+}
+
+enum ReportCategory {
+  MINOR
+  NON_CONSENSUAL
+  SPAM
+  FAKE_PROFILE
+  HARASSMENT
+  ILLEGAL
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum AlbumUnlockMode {
+  MANUAL
+  MATCH
+  PAID
+}
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+  CREATOR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
+enum CoupleLinkStatus {
+  PENDING
+  CONFIRMED
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  QUARANTINED
+  BLOCKED
+}
+
+enum BannerPosition {
+  TOP
+  SIDE
+  INLINE_FEED
+}
+
+// ────────────────────────────── USUÁRIO ──────────────────────────────
+
+model User {
+  id           String      @id @default(cuid())
+  username     String      @unique // @ único e imutável (regra de negócio)
+  email        String      @unique
+  phone        String?     @unique
+  passwordHash String
+  role         Role        @default(USER)
+
+  displayName  String
+  bio          String?     @db.VarChar(500)
+  avatarUrl    String?
+  coverUrl     String?
+  profileType  ProfileType
+  birthDate    DateTime
+  city         String?
+  state        String?
+  status       UserStatus  @default(AVAILABLE)
+
+  verification       VerificationStatus @default(NONE)
+  verifiedAt         DateTime?
+  twoFactorEnabled   Boolean            @default(false)
+  emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime?
+
+  // preferências de quem deseja ver (tipos de perfil) e interesses
+  preferredTypes ProfileType[]
+  interests      String[]      // ex.: ["swing","exibicionismo","casual"]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bannedAt  DateTime?
+
+  // relações
+  location          UserLocation?
+  posts             Post[]
+  reactions         Reaction[]
+  comments          Comment[]
+  saves             Save[]
+  verificationDocs  Verification[]
+  privateAlbums     PrivateAlbum[]
+  albumAccesses     AlbumAccess[]      @relation("AlbumViewer")
+  subscriptions     Subscription[]
+  transactions      Transaction[]
+  notifications     Notification[]
+  ownedVenues       Venue[]
+  eventRsvps        EventRsvp[]
+  safetyCheckins    SafetyCheckin[]
+
+  interestsSent     Interest[] @relation("InterestsSent")
+  interestsReceived Interest[] @relation("InterestsReceived")
+
+  chatsAsA          Chat[]     @relation("ChatUserA")
+  chatsAsB          Chat[]     @relation("ChatUserB")
+  messagesSent      Message[]  @relation("MessagesSent")
+
+  blocksMade        Block[]    @relation("Blocker")
+  blocksReceived    Block[]    @relation("Blocked")
+
+  coupleLinksA      CoupleLink[] @relation("CoupleA")
+  coupleLinksB      CoupleLink[] @relation("CoupleB")
+
+  followers         Follow[]   @relation("Following")
+  following         Follow[]   @relation("Follower")
+
+  reportsMade       Report[]   @relation("Reporter")
+  auditLogs         AuditLog[]
+
+  @@index([profileType])
+  @@index([verification])
+}
+
+// localização separada (PostGIS). geom criado/indexado por migration SQL.
+model UserLocation {
+  userId   String           @id
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lat      Float
+  lng      Float
+  geom     Unsupported("geography(Point, 4326)")?
+  accuracy LocationAccuracy @default(NEIGHBORHOOD)
+  sharing  Boolean          @default(true) // modo invisível desliga isto
+  updatedAt DateTime        @updatedAt
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+// ────────────────────────────── CONTEÚDO ──────────────────────────────
+
+model Post {
+  id          String     @id @default(cuid())
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  description String?    @db.VarChar(2200)
+  mediaUrls   String[]
+  visibility  Visibility @default(PUBLIC)
+  lat         Float?
+  lng         Float?
+
+  fireCount    Int @default(0)
+  commentCount Int @default(0)
+
+  moderation  ModerationStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  reactions Reaction[]
+  comments  Comment[]
+  saves     Save[]
+  ageConsent AgeConsentRecord?
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  postId    String
+  userId    String
+  type      ReactionType @default(FIRE)
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([postId, userId]) // 1 fogo por pessoa por post
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  parentId  String?  // resposta aninhada (1 nível)
+  body      String   @db.VarChar(1000)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Save {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+// álbum privado / desbloqueio progressivo
+model PrivateAlbum {
+  id        String          @id @default(cuid())
+  ownerId   String
+  owner     User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  mediaUrls String[]
+  unlock    AlbumUnlockMode @default(MANUAL)
+  priceCents Int?
+  createdAt DateTime        @default(now())
+  accesses  AlbumAccess[]
+}
+
+model AlbumAccess {
+  id        String       @id @default(cuid())
+  albumId   String
+  viewerId  String
+  album     PrivateAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  viewer    User         @relation("AlbumViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  grantedAt DateTime     @default(now())
+
+  @@unique([albumId, viewerId])
+}
+
+// ────────────────────────── INTERESSE & CHAT ──────────────────────────
+
+model Interest {
+  id         String         @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  status     InterestStatus @default(PENDING)
+  isSuper    Boolean        @default(false)
+  fromUser   User           @relation("InterestsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User           @relation("InterestsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, status])
+}
+
+model Chat {
+  id          String    @id @default(cuid())
+  userAId     String
+  userBId     String
+  isSuperChat Boolean   @default(false) // liberado quando o interesse é aceito
+  userA       User      @relation("ChatUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB       User      @relation("ChatUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+
+  @@unique([userAId, userBId])
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  chatId    String
+  senderId  String
+  body      String?
+  mediaUrl  String?
+  viewOnce  Boolean   @default(false)
+  readAt    DateTime?
+  expiresAt DateTime? // mensagem efêmera
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User      @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model CoupleLink {
+  id          String           @id @default(cuid())
+  userAId     String
+  userBId     String
+  status      CoupleLinkStatus @default(PENDING)
+  userA       User             @relation("CoupleA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB       User             @relation("CoupleB", fields: [userBId], references: [id], onDelete: Cascade)
+  confirmedAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@unique([userAId, userBId])
+}
+
+// ──────────────────── CASAS DE SWING / EVENTOS ────────────────────
+
+model Venue {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  cnpj      String?
+  address   String?
+  lat       Float?
+  lng       Float?
+  geom      Unsupported("geography(Point, 4326)")?
+  rules     String?
+  hours     String?
+  photos    String[]
+  verified  Boolean  @default(false)
+  events    Event[]
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  venueId     String
+  venue       Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  theme       String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  priceCents  Int?
+  capacity    Int?
+  rsvps       EventRsvp[]
+  createdAt   DateTime    @default(now())
+
+  @@index([startsAt])
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+// ──────────────── VERIFICAÇÃO, DENÚNCIA, MODERAÇÃO ────────────────
+
+model Verification {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  docFrontUrl String // bucket PRIVADO criptografado
+  docBackUrl  String?
+  selfieUrl   String
+  status      VerificationStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reason      String?
+  retentionUntil DateTime? // expurgo automático (LGPD)
+  createdAt   DateTime           @default(now())
+
+  @@index([status])
+}
+
+model Report {
+  id         String           @id @default(cuid())
+  reporterId String
+  reporter   User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTargetType
+  targetId   String
+  category   ReportCategory
+  body       String?
+  status     ReportStatus     @default(OPEN)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([status, category])
+}
+
+// fila de moderação automática (IA: CSAM/nudez)
+model ModerationQueue {
+  id        String           @id @default(cuid())
+  mediaUrl  String
+  postId    String?
+  aiScore   Float?
+  aiLabels  String[]
+  status    ModerationStatus @default(PENDING)
+  reviewedBy String?
+  createdAt DateTime         @default(now())
+
+  @@index([status])
+}
+
+// estilo "2257": atesta maioridade/consentimento dos retratados
+model AgeConsentRecord {
+  id          String   @id @default(cuid())
+  postId      String   @unique
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  uploaderId  String
+  attestation Boolean  @default(true)
+  ip          String?
+  createdAt   DateTime @default(now())
+}
+
+// hash de conteúdo banido (CSAM/NCII/spam) → bloqueia reupload
+model ContentHash {
+  hash      String   @id
+  reason    String
+  blockedAt DateTime @default(now())
+}
+
+model SafetyCheckin {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingWithId  String?
+  location       String?
+  trustedContact String?
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+}
+
+// ──────────────── MONETIZAÇÃO & ADMIN ────────────────
+
+model Subscription {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan   @default(FREE)
+  status       SubscriptionStatus @default(ACTIVE)
+  processorRef String? // CCBill/Segpay
+  renewsAt     DateTime?
+  canceledAt   DateTime?
+  createdAt    DateTime           @default(now())
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String // subscription | boost | gift | super | tip
+  amountCents  Int
+  currency     String   @default("BRL")
+  processor    String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Banner {
+  id        String         @id @default(cuid())
+  imageUrl  String
+  link      String?
+  position  BannerPosition @default(INLINE_FEED)
+  audience  Json? // segmentação: tipos de perfil, região
+  active    Boolean        @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime       @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // fire | comment | interest | match | proximity | system
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+// auditoria de TODA ação admin sobre dado sensível (compliance)
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id])
+  action     String
+  targetType String
+  targetId   String
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+}
