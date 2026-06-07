@@ -1,4 +1,5 @@
 import { VerifiedIcon } from "../components/Icons.js";
+import { Logo } from "../components/Logo.js";
 import type { ChatContact } from "./ConversationScreen.js";
 
 const CHATS: (ChatContact & { last: string; time: string; unread: number })[] = [
@@ -33,7 +34,10 @@ export function ChatScreen({ onOpenChat }: Props) {
   return (
     <div className="flex flex-col h-full">
       <header className="flex-shrink-0 px-5 pt-12 pb-4">
-        <h1 className="font-display text-xl font-bold text-ink mb-4">Mensagens</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <Logo variant="icon" height={28} className="rounded-lg" />
+          <h1 className="font-display text-xl font-bold text-ink">Mensagens</h1>
+        </div>
 
         <p className="text-xs font-semibold text-ink-3 uppercase tracking-widest mb-3">
           Interesses pendentes

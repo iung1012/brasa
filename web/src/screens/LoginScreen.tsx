@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.js";
-import { FlameIcon } from "../components/Icons.js";
+import { Logo } from "../components/Logo.js";
 
 type Props = { onRegister: () => void };
 
@@ -34,13 +34,8 @@ export function LoginScreen({ onRegister }: Props) {
   return (
     <div className="flex flex-col h-full bg-bg px-6 pt-20 pb-8">
       {/* logo */}
-      <div className="flex items-center gap-2 mb-10">
-        <div className="w-10 h-10 rounded-2xl bg-heat flex items-center justify-center">
-          <FlameIcon className="w-5 h-5 text-white" />
-        </div>
-        <span className="font-display text-2xl font-bold text-ink">
-          Bra<span className="bg-heat bg-clip-text text-transparent">sa</span>
-        </span>
+      <div className="mb-10">
+        <Logo variant="full" height={40} />
       </div>
 
       <h2 className="font-display text-3xl font-bold text-ink mb-1">Entrar</h2>

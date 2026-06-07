@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.js";
-import { FlameIcon } from "../components/Icons.js";
+import { Logo } from "../components/Logo.js";
 
 type ProfileType = "COUPLE_MF" | "COUPLE_MM" | "COUPLE_FF" | "SINGLE_M" | "SINGLE_F";
 
@@ -63,7 +63,7 @@ export function RegisterScreen({ onLogin }: Props) {
   if (step === "type") {
     return (
       <div className="flex flex-col h-full bg-bg px-6 pt-16 pb-8">
-        <Logo />
+        <LogoMark />
         <h2 className="font-display text-3xl font-bold text-ink mt-8 mb-1">Quem é você?</h2>
         <p className="text-sm text-ink-3 mb-6">Escolha o tipo de perfil.</p>
 
@@ -248,17 +248,8 @@ export function RegisterScreen({ onLogin }: Props) {
 
 // ── helpers ───────────────────────────────────────────────────────
 
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-10 h-10 rounded-2xl bg-heat flex items-center justify-center">
-        <FlameIcon className="w-5 h-5 text-white" />
-      </div>
-      <span className="font-display text-2xl font-bold text-ink">
-        Bra<span className="bg-heat bg-clip-text text-transparent">sa</span>
-      </span>
-    </div>
-  );
+function LogoMark() {
+  return <Logo variant="full" height={40} />;
 }
 
 function StepBar({ current, total }: { current: number; total: number }) {

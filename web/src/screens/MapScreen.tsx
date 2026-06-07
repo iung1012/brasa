@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { VerifiedIcon, UsersIcon, SearchIcon } from "../components/Icons.js";
+import { Logo } from "../components/Logo.js";
 
 const PINS = [
   { id: "1", name: "Marina", verified: true,  top: "22%", left: "58%",
@@ -31,10 +32,10 @@ export function MapScreen() {
     <div className="flex flex-col h-full">
       <header className="flex-shrink-0 px-5 pt-12 pb-3">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-display text-xl font-bold text-ink">
-            Bra<span className="bg-heat bg-clip-text text-transparent">sa</span>
-            <span className="text-ink-3 font-normal text-base ml-2">Mapa</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <Logo variant="full" height={28} />
+            <span className="text-ink-3 font-normal text-base">Mapa</span>
+          </div>
           <button className="w-9 h-9 rounded-full bg-surface-2 border border-line flex items-center justify-center text-ink-2">
             <SearchIcon />
           </button>

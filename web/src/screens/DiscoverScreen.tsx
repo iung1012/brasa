@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Logo } from "../components/Logo.js";
 import { getFeed, toggleFire, type Post } from "../services/api.js";
 import { FireButton } from "../components/FireButton.js";
 import { CommentsSheet } from "../components/CommentsSheet.js";
@@ -51,9 +52,7 @@ export function DiscoverScreen({ onCreatePost }: { onCreatePost: () => void }) {
   return (
     <div className="flex flex-col h-full">
       <header className="flex-shrink-0 flex items-center justify-between px-5 pt-12 pb-3">
-        <h1 className="font-display text-xl font-bold text-ink">
-          Bra<span className="bg-heat bg-clip-text text-transparent">sa</span>
-        </h1>
+        <Logo variant="full" height={28} />
         <div className="flex items-center bg-surface-2 rounded-full p-1 gap-0.5">
           {(["discover", "feed"] as SubTab[]).map((t) => (
             <button key={t} onClick={() => setSub(t)}
