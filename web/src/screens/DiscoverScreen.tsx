@@ -187,51 +187,54 @@ function FeedTab({ onCreatePost }: { onCreatePost: () => void }) {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 pb-24 space-y-4 relative">
-      {/* filtros de aba */}
-      <div className="flex gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-        {(["all","reco"] as const).map((t, i) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${tab === t ? "bg-heat text-white" : "bg-surface-2 text-ink-2 border border-line"}`}>
-            {t === "all" ? "Recentes" : "Recomendados"}
-          </button>
+    // wrapper relative: FAB será absolute aqui, não fixed na viewport
+    <div className="relative h-full">
+      <div className="h-full overflow-y-auto px-4 pb-24 space-y-4">
+        {/* filtros de aba */}
+        <div className="flex gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+          {(["all","reco"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${tab === t ? "bg-heat text-white" : "bg-surface-2 text-ink-2 border border-line"}`}>
+              {t === "all" ? "Recentes" : "Recomendados"}
+            </button>
+          ))}
+          {["Casais","Solteiros","Casas"].map((f) => (
+            <button key={f} className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold bg-surface-2 text-ink-2 border border-line">{f}</button>
+          ))}
+        </div>
+
+        {/* skeletons */}
+        {loading && [1,2,3].map((i) => <PostSkeleton key={i} />)}
+
+        {/* erro */}
+        {!loading && error && (
+          <div className="text-center py-8">
+            <p className="text-sm text-ink-3 mb-3">{error}</p>
+            <button onClick={() => load(true)} className="text-heat-1 text-sm font-semibold">Tentar novamente</button>
+          </div>
+        )}
+
+        {/* posts */}
+        {posts.map((p) => (
+          <FeedCard
+            key={p.id}
+            post={p}
+            onFire={(fired, delta) => handleFire(p.id, fired, delta)}
+            onComment={() => setCommentPostId(p.id)}
+          />
         ))}
-        {["Casais","Solteiros","Casas"].map((f) => (
-          <button key={f} className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold bg-surface-2 text-ink-2 border border-line">{f}</button>
-        ))}
+
+        {/* carregando mais */}
+        {loadingMore && <PostSkeleton />}
+
+        {/* sentinel infinite scroll */}
+        <div ref={bottomRef} className="h-2" />
       </div>
 
-      {/* skeletons */}
-      {loading && [1,2,3].map((i) => <PostSkeleton key={i} />)}
-
-      {/* erro */}
-      {!loading && error && (
-        <div className="text-center py-8">
-          <p className="text-sm text-ink-3 mb-3">{error}</p>
-          <button onClick={() => load(true)} className="text-heat-1 text-sm font-semibold">Tentar novamente</button>
-        </div>
-      )}
-
-      {/* posts */}
-      {posts.map((p) => (
-        <FeedCard
-          key={p.id}
-          post={p}
-          onFire={(fired, delta) => handleFire(p.id, fired, delta)}
-          onComment={() => setCommentPostId(p.id)}
-        />
-      ))}
-
-      {/* carregando mais */}
-      {loadingMore && <PostSkeleton />}
-
-      {/* sentinel infinite scroll */}
-      <div ref={bottomRef} className="h-2" />
-
-      {/* FAB criar post */}
+      {/* FAB criar post — absolute no container, não fixed na viewport */}
       <button
         onClick={onCreatePost}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-heat shadow-[0_8px_32px_rgba(255,46,86,0.5)] flex items-center justify-center z-30 active:scale-95 transition-transform"
+        className="absolute bottom-6 right-4 w-14 h-14 rounded-full bg-heat shadow-[0_8px_32px_rgba(255,46,86,0.5)] flex items-center justify-center z-30 active:scale-95 transition-transform"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />
