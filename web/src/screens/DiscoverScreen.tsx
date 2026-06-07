@@ -76,22 +76,80 @@ export function DiscoverScreen({ onCreatePost }: { onCreatePost: () => void }) {
 
 // ── Card de descoberta ────────────────────────────────────────────
 
+const SWIPE_THRESHOLD = 80;
+
 type CardProps = { profile: typeof PROFILES[0]; leaving: "left"|"right"|null; onPass:()=>void; onInterest:()=>void };
 
 function DiscoverCard({ profile, leaving, onPass, onInterest }: CardProps) {
-  const transform =
-    leaving === "left" ? "translate(-110%,0) rotate(-15deg)" :
-    leaving === "right" ? "translate(110%,0) rotate(15deg)" :
-    "translate(0,0) rotate(0deg)";
+  const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
+  const start = useRef({ x: 0, y: 0 });
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (leaving) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    start.current = { x: e.clientX, y: e.clientY };
+    setDrag({ x: 0, y: 0, active: true });
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!drag.active) return;
+    setDrag({ x: e.clientX - start.current.x, y: e.clientY - start.current.y, active: true });
+  }
+
+  function onPointerUp() {
+    if (!drag.active) return;
+    if      (drag.x >  SWIPE_THRESHOLD) onInterest();
+    else if (drag.x < -SWIPE_THRESHOLD) onPass();
+    setDrag({ x: 0, y: 0, active: false });
+  }
+
+  const rotate = drag.x * 0.06;
+  const likeOpacity = Math.min(Math.max(drag.x / SWIPE_THRESHOLD, 0), 1);
+  const passOpacity = Math.min(Math.max(-drag.x / SWIPE_THRESHOLD, 0), 1);
+
+  let transform: string;
+  if (drag.active) {
+    transform = `translate(${drag.x}px, ${drag.y * 0.3}px) rotate(${rotate}deg)`;
+  } else if (leaving === "left") {
+    transform = "translate(-130%, 20px) rotate(-20deg)";
+  } else if (leaving === "right") {
+    transform = "translate(130%, 20px) rotate(20deg)";
+  } else {
+    transform = "translate(0,0) rotate(0deg)";
+  }
 
   return (
     <div className="relative h-full flex flex-col items-center px-4 pb-4">
       <div className="absolute inset-x-8 top-6 bottom-24 rounded-[28px] bg-surface-2 scale-95 opacity-50 pointer-events-none" />
-      <div className="relative w-full flex-1 rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-[280ms] ease-in-out" style={{ transform }}>
-        <img src={profile.photo} alt={profile.name} className="absolute inset-0 w-full h-full object-cover" />
+
+      <div
+        className="relative w-full flex-1 rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] cursor-grab active:cursor-grabbing select-none"
+        style={{ transform, transition: drag.active ? "none" : "transform 300ms ease-out" }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <img src={profile.photo} alt={profile.name} className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FF1E56]/10 via-transparent to-transparent" />
-        <div className="absolute top-0 left-0 right-0 p-5">
+
+        {/* label INTERESSE (arrastar direita) */}
+        <div
+          className="absolute top-8 left-5 border-[3px] border-heat-1 rounded-xl px-3 py-1 rotate-[-15deg]"
+          style={{ opacity: likeOpacity }}
+        >
+          <span className="font-display font-black text-heat-1 text-xl tracking-widest">INTERESSE</span>
+        </div>
+
+        {/* label PULAR (arrastar esquerda) */}
+        <div
+          className="absolute top-8 right-5 border-[3px] border-white/60 rounded-xl px-3 py-1 rotate-[15deg]"
+          style={{ opacity: passOpacity }}
+        >
+          <span className="font-display font-black text-white/80 text-xl tracking-widest">PULAR</span>
+        </div>
+
+        <div className="absolute top-0 left-0 right-0 p-5 pointer-events-none">
           <div className="flex items-center gap-2 mb-2">
             <h2 className="font-display text-3xl font-bold text-white leading-tight drop-shadow-lg">{profile.name}</h2>
             {profile.verified && (
@@ -107,10 +165,11 @@ function DiscoverCard({ profile, leaving, onPass, onInterest }: CardProps) {
             <Chip>{profile.tag}</Chip>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 p-5">
+        <div className="absolute bottom-0 left-0 right-0 p-5 pointer-events-none">
           <p className="text-white/80 text-sm leading-relaxed">{profile.bio}</p>
         </div>
       </div>
+
       <div className="flex-shrink-0 flex items-center justify-center gap-5 pt-4">
         <ActionBtn variant="pass" onClick={onPass}><XIcon /></ActionBtn>
         <ActionBtn variant="super"><StarIcon /></ActionBtn>

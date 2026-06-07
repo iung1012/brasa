@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.js";
-import { DiscoverScreen }    from "./screens/DiscoverScreen.js";
-import { MapScreen }         from "./screens/MapScreen.js";
-import { ChatScreen }        from "./screens/ChatScreen.js";
-import { ProfileScreen }     from "./screens/ProfileScreen.js";
-import { LoginScreen }       from "./screens/LoginScreen.js";
-import { RegisterScreen }    from "./screens/RegisterScreen.js";
-import { CreatePostScreen }  from "./screens/CreatePostScreen.js";
-import { BottomNav }         from "./components/BottomNav.js";
+import { DiscoverScreen }      from "./screens/DiscoverScreen.js";
+import { MapScreen }           from "./screens/MapScreen.js";
+import { ChatScreen }          from "./screens/ChatScreen.js";
+import { ProfileScreen }       from "./screens/ProfileScreen.js";
+import { LoginScreen }         from "./screens/LoginScreen.js";
+import { RegisterScreen }      from "./screens/RegisterScreen.js";
+import { CreatePostScreen }    from "./screens/CreatePostScreen.js";
+import { ConversationScreen, type ChatContact } from "./screens/ConversationScreen.js";
+import { BottomNav }           from "./components/BottomNav.js";
 
 export type Tab = "discover" | "map" | "chat" | "profile";
 
@@ -16,6 +17,7 @@ function Shell() {
   const [tab, setTab]             = useState<Tab>("discover");
   const [authView, setAuthView]   = useState<"login" | "register">("login");
   const [creating, setCreating]   = useState(false);
+  const [conversation, setConversation] = useState<ChatContact | null>(null);
 
   if (!user) {
     return (
@@ -28,12 +30,21 @@ function Shell() {
     );
   }
 
+  // tela de conversa sobrepoe tudo (sem bottom nav)
+  if (conversation) {
+    return (
+      <div className="relative flex flex-col h-dvh w-full max-w-[430px] mx-auto overflow-hidden bg-bg">
+        <ConversationScreen contact={conversation} onBack={() => setConversation(null)} />
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col h-dvh w-full max-w-[430px] mx-auto overflow-hidden bg-bg">
       <main className="flex-1 overflow-hidden">
         {tab === "discover" && <DiscoverScreen onCreatePost={() => setCreating(true)} />}
         {tab === "map"      && <MapScreen />}
-        {tab === "chat"     && <ChatScreen />}
+        {tab === "chat"     && <ChatScreen onOpenChat={(c) => setConversation(c)} />}
         {tab === "profile"  && <ProfileScreen />}
       </main>
       <BottomNav active={tab} onChange={setTab} />
