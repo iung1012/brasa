@@ -15,7 +15,7 @@ const POSTS = [
 
 type Section = "posts" | "settings";
 
-export function ProfileScreen() {
+export function ProfileScreen({ onEditProfile }: { onEditProfile?: () => void }) {
   const { theme, toggle } = useTheme();
   const { user, logout }  = useAuth();
   const [section, setSection] = useState<Section>("posts");
@@ -30,7 +30,7 @@ export function ProfileScreen() {
       <div className="relative h-40 bg-heat flex-shrink-0">
         <div className="absolute inset-0 bg-black/20" />
         <button
-          onClick={() => setSection("settings")}
+          onClick={onEditProfile}
           className="absolute top-12 right-4 bg-white/20 backdrop-blur text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/30"
         >
           Editar perfil

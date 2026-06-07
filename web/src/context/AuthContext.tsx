@@ -7,6 +7,10 @@ interface User {
   profileType: string;
   verification: string;
   avatarUrl?: string;
+  coverUrl?: string;
+  bio?: string;
+  city?: string;
+  interests?: string[];
 }
 
 interface AuthCtx {

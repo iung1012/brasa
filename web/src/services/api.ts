@@ -81,6 +81,58 @@ export async function addComment(postId: string, body: string, parentId?: string
   });
 }
 
+// ── Usuários ──────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  profileType: string;
+  city: string | null;
+  interests: string[];
+  verification: string;
+  locationVisibility: string;
+  createdAt: string;
+  _count: { posts: number; followers: number };
+}
+
+export async function getMe(): Promise<UserProfile> {
+  return req("/users/me");
+}
+
+export async function updateProfile(data: {
+  displayName?: string;
+  bio?: string;
+  city?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  interests?: string[];
+  locationVisibility?: string;
+}): Promise<UserProfile> {
+  return req("/users/me", { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export async function searchUsers(params: {
+  q?: string;
+  type?: string;
+  maxKm?: number;
+  cursor?: string;
+}): Promise<UserProfile[]> {
+  const p = new URLSearchParams();
+  if (params.q)      p.set("q",     params.q);
+  if (params.type)   p.set("type",  params.type);
+  if (params.maxKm)  p.set("maxKm", String(params.maxKm));
+  if (params.cursor) p.set("cursor", params.cursor);
+  return req(`/users/search?${p}`);
+}
+
+export async function getUserProfile(username: string): Promise<UserProfile> {
+  return req(`/users/${username}`);
+}
+
 // ── Upload de mídia ───────────────────────────────────────────────
 
 export async function uploadMedia(file: File, onProgress?: (pct: number) => void): Promise<string> {

@@ -6,7 +6,7 @@ import { CommentsSheet } from "../components/CommentsSheet.js";
 import { PostSkeleton } from "../components/Skeleton.js";
 import {
   VerifiedIcon, UsersIcon, PersonIcon, MapPinIcon,
-  StarIcon, XIcon, DotsIcon, CommentIcon, BookmarkIcon,
+  StarIcon, XIcon, DotsIcon, CommentIcon, BookmarkIcon, SearchIcon,
 } from "../components/Icons.js";
 
 // ── mock posts: usado como fallback quando a API está offline ─────
@@ -37,7 +37,7 @@ const PROFILES = [
 
 type SubTab = "discover" | "feed";
 
-export function DiscoverScreen({ onCreatePost }: { onCreatePost: () => void }) {
+export function DiscoverScreen({ onCreatePost, onSearch }: { onCreatePost: () => void; onSearch: () => void }) {
   const [sub, setSub]   = useState<SubTab>("discover");
   const [idx, setIdx]   = useState(0);
   const [leaving, setLeaving] = useState<"left" | "right" | null>(null);
@@ -51,9 +51,9 @@ export function DiscoverScreen({ onCreatePost }: { onCreatePost: () => void }) {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex-shrink-0 flex items-center justify-between px-5 pt-12 pb-3">
+      <header className="flex-shrink-0 flex items-center gap-3 px-5 pt-12 pb-3">
         <Logo variant="full" height={28} />
-        <div className="flex items-center bg-surface-2 rounded-full p-1 gap-0.5">
+        <div className="flex-1 flex items-center bg-surface-2 rounded-full p-1 gap-0.5">
           {(["discover", "feed"] as SubTab[]).map((t) => (
             <button key={t} onClick={() => setSub(t)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${sub === t ? "bg-heat text-white shadow" : "text-ink-3"}`}>
@@ -61,6 +61,9 @@ export function DiscoverScreen({ onCreatePost }: { onCreatePost: () => void }) {
             </button>
           ))}
         </div>
+        <button onClick={onSearch} className="w-9 h-9 rounded-full bg-surface-2 border border-line flex items-center justify-center text-ink-2 flex-shrink-0">
+          <SearchIcon className="w-4 h-4" />
+        </button>
       </header>
 
       <div className="flex-1 overflow-hidden">
