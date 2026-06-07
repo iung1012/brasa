@@ -8,6 +8,25 @@ import {
   StarIcon, XIcon, DotsIcon, CommentIcon, BookmarkIcon,
 } from "../components/Icons.js";
 
+// ── mock posts: usado como fallback quando a API está offline ─────
+const MOCK_POSTS: Post[] = [
+  {
+    id: "m1", description: "Noite perfeita na cidade. Curtindo cada momento.", mediaUrls: ["https://images.unsplash.com/photo-1516589091380-5d8e87df6999?w=600&q=80"],
+    fireCount: 284, commentCount: 31, firedByMe: false, createdAt: new Date().toISOString(),
+    author: { username: "marina_leo", displayName: "Marina & Leo", avatarUrl: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=80&q=80", verification: "APPROVED" },
+  },
+  {
+    id: "m2", description: "Sol, liberdade e sem arrependimentos.", mediaUrls: ["https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80"],
+    fireCount: 512, commentCount: 47, firedByMe: false, createdAt: new Date().toISOString(),
+    author: { username: "sofialiberta", displayName: "Sofia", avatarUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=80&q=80", verification: "APPROVED" },
+  },
+  {
+    id: "m3", description: "Fim de semana incrivel com nossos amigos.", mediaUrls: ["https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80"],
+    fireCount: 198, commentCount: 22, firedByMe: false, createdAt: new Date().toISOString(),
+    author: { username: "bia_carol", displayName: "Bia & Carol", avatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=80&q=80", verification: "NONE" },
+  },
+];
+
 // ── mock de perfis para a aba Descobrir ───────────────────────────
 const PROFILES = [
   { id: "1", name: "Marina & Leo", age: 28, type: "Casal", typeIcon: "couple", distance: "4km", tag: "Swing", verified: true, bio: "Curtindo a vida e buscando novas conexoes.", photo: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&q=80" },
@@ -144,8 +163,13 @@ function FeedTab({ onCreatePost }: { onCreatePost: () => void }) {
       setPosts((prev) => reset ? data : [...prev, ...data]);
       if (data.length > 0) setCursor(data[data.length - 1].id);
       if (data.length < 20) setHasMore(false);
-    } catch (e: any) {
-      setError(e.message ?? "Erro ao carregar feed");
+    } catch {
+      // API offline: usa mock como fallback para não deixar o feed vazio
+      if (reset) {
+        setPosts(MOCK_POSTS);
+        setError("offline");   // sinaliza banner sutil, mas mostra posts
+      }
+      setHasMore(false);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -206,11 +230,13 @@ function FeedTab({ onCreatePost }: { onCreatePost: () => void }) {
         {/* skeletons */}
         {loading && [1,2,3].map((i) => <PostSkeleton key={i} />)}
 
-        {/* erro */}
-        {!loading && error && (
-          <div className="text-center py-8">
-            <p className="text-sm text-ink-3 mb-3">{error}</p>
-            <button onClick={() => load(true)} className="text-heat-1 text-sm font-semibold">Tentar novamente</button>
+        {/* banner offline — aparece acima dos posts, não bloqueia o feed */}
+        {!loading && error === "offline" && (
+          <div className="flex items-center justify-between bg-surface-2 border border-line rounded-2xl px-4 py-3">
+            <p className="text-xs text-ink-3">Sem conexao com o servidor. Exibindo demonstracao.</p>
+            <button onClick={() => load(true)} className="text-xs text-heat-1 font-semibold ml-3 flex-shrink-0">
+              Tentar novamente
+            </button>
           </div>
         )}
 
