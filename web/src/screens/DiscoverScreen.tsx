@@ -132,7 +132,7 @@ function DiscoverCard({ profile, leaving, onPass, onInterest }: CardProps) {
 
   return (
     <div className="relative h-full flex flex-col items-center px-4 pb-4">
-      <div className="absolute inset-x-8 top-6 bottom-4 rounded-[28px] bg-surface-2 scale-95 opacity-50" />
+      <div className="absolute inset-x-8 top-6 bottom-24 rounded-[28px] bg-surface-2 scale-95 opacity-50 pointer-events-none" />
 
       <div
         className="relative w-full flex-1 rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-all duration-[280ms] ease-in-out"
