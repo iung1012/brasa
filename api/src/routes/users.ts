@@ -6,8 +6,8 @@ import { authGuard } from "../auth.js";
 const USER_SELECT = {
   id: true, username: true, displayName: true, bio: true,
   avatarUrl: true, coverUrl: true, profileType: true,
-  city: true, interests: true, verification: true,
-  locationVisibility: true, createdAt: true,
+  city: true, state: true, interests: true, verification: true,
+  status: true, createdAt: true,
   _count: { select: { posts: true, followers: true } },
 } as const;
 
@@ -31,7 +31,7 @@ export async function userRoutes(app: FastifyInstance) {
       avatarUrl:          z.string().url().optional(),
       coverUrl:           z.string().url().optional(),
       interests:          z.array(z.string()).max(10).optional(),
-      locationVisibility: z.enum(["EXACT", "NEIGHBORHOOD", "CITY", "HIDDEN"]).optional(),
+      state: z.string().max(50).optional(),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
